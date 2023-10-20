@@ -37,7 +37,7 @@ bot_template = '''
 user_template = '''
 <div class="chat-message user">
     <div class="avatar">
-        <img src="https://cdn-icons-png.flaticon.com/512/1144/1144760.png">
+        <img src="https://birichatbotprod.blob.core.windows.net/images/1144760.png">
     </div>    
     <div class="message">{{MSG}}</div>
 </div>
