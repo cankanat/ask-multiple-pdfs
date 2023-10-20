@@ -14,7 +14,6 @@ import os
 
 from io import BytesIO
 
-
 def get_pdfs_from_blob(account_url, container_name, sas_token):
     blob_service_client = BlobServiceClient(account_url=account_url, credential=sas_token)
     container_client = blob_service_client.get_container_client(container_name)
@@ -91,6 +90,11 @@ def main():
     ACCOUNT_URL = os.getenv("ACCOUNT_URL") 
     CONTAINER_NAME = os.getenv("CONTAINER_NAME") 
     SAS_TOKEN = os.getenv("SAS_TOKEN") 
+
+    try:
+       blob_service_client_test = BlobServiceClient(account_url=ACCOUNT_URL, credential=SAS_TOKEN)
+    except Exception as e:
+       st.write("BlobServiceClient Error: ", str(e))
 
     # Azure Blob Storage'dan PDF'leri çekin
     pdf_data_list = get_pdfs_from_blob(ACCOUNT_URL, CONTAINER_NAME, SAS_TOKEN)
