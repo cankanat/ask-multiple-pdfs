@@ -15,8 +15,6 @@ import os
 from io import BytesIO
 
 def get_pdfs_from_blob(account_url, container_name, sas_token):
-    account_url = "https://stknowledgebasedata.blob.core.windows.net/"
-    #st.write(f"Account URL TEST2: {account_url}")
     blob_service_client = BlobServiceClient(account_url=account_url, credential=sas_token)
     container_client = blob_service_client.get_container_client(container_name)
     blobs = container_client.list_blobs()
@@ -113,7 +111,7 @@ def main():
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
 
-    st.header("BİRİ with multiple PDFs :books:")
+    st.header("ABDI-GPT")
     user_question = st.text_input("Dokümanın ile ilgili soru sor:")
     if user_question:
         handle_userinput(user_question)
