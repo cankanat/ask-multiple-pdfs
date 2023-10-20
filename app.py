@@ -9,11 +9,29 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
 from langchain.llms import HuggingFaceHub
+from azure.storage.blob import BlobServiceClient
+import os
 
-def get_pdf_text(pdf_docs):
+from io import BytesIO
+
+
+def get_pdfs_from_blob(account_url, container_name, sas_token):
+    blob_service_client = BlobServiceClient(account_url=account_url, credential=sas_token)
+    container_client = blob_service_client.get_container_client(container_name)
+    blobs = container_client.list_blobs()
+
+    pdf_data = []
+    for blob in blobs:
+        blob_client = container_client.get_blob_client(blob.name)
+        pdf_data.append(blob_client.download_blob().readall())
+    return pdf_data
+
+
+def get_pdf_text(pdf_data_list):
     text = ""
-    for pdf in pdf_docs:
-        pdf_reader = PdfReader(pdf)
+    for pdf_data in pdf_data_list:
+        pdf_stream = BytesIO(pdf_data)
+        pdf_reader = PdfReader(pdf_stream)
         for page in pdf_reader.pages:
             text += page.extract_text()
     return text
@@ -66,38 +84,38 @@ def handle_userinput(user_question):
 
 def main():
     load_dotenv()
-    st.set_page_config(page_title="Chat with multiple PDFs",
-                       page_icon=":books:")
+    st.set_page_config(page_title="BİRİ with multiple PDFs", page_icon=":books:")
     st.write(css, unsafe_allow_html=True)
+
+    # Azure Blob Storage bilgilerini .env dosyasından alın
+    ACCOUNT_URL = os.getenv("ACCOUNT_URL") 
+    CONTAINER_NAME = os.getenv("CONTAINER_NAME") 
+    SAS_TOKEN = os.getenv("SAS_TOKEN") 
+
+    # Azure Blob Storage'dan PDF'leri çekin
+    pdf_data_list = get_pdfs_from_blob(ACCOUNT_URL, CONTAINER_NAME, SAS_TOKEN)
+
+    # PDF datalarını PdfReader ile okuyarak metne dönüştürün
+    raw_text = get_pdf_text(pdf_data_list)
+
+    # get the text chunks
+    text_chunks = get_text_chunks(raw_text)
+
+    # create vector store
+    vectorstore = get_vectorstore(text_chunks)
+
+    # create conversation chain
+    st.session_state.conversation = get_conversation_chain(vectorstore)
 
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
 
-    st.header("Chat with multiple PDFs :books:")
-    user_question = st.text_input("Ask a question about your documents:")
+    st.header("BİRİ with multiple PDFs :books:")
+    user_question = st.text_input("Dokümanın ile ilgili soru sor:")
     if user_question:
         handle_userinput(user_question)
-
-    with st.sidebar:
-        st.subheader("Your documents")
-        pdf_docs = st.file_uploader(
-            "Upload your PDFs here and click on 'Process'", accept_multiple_files=True)
-        if st.button("Process"):
-            with st.spinner("Processing"):
-                # get pdf text
-                raw_text = get_pdf_text(pdf_docs)
-
-                # get the text chunks
-                text_chunks = get_text_chunks(raw_text)
-
-                # create vector store
-                vectorstore = get_vectorstore(text_chunks)
-
-                # create conversation chain
-                st.session_state.conversation = get_conversation_chain(
-                    vectorstore)
 
 
 if __name__ == '__main__':
